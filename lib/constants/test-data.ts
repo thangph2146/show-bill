@@ -19,7 +19,7 @@
  */
 export const TEST_DATA = {
   channelCode: 'DLC',
-  secretKey: '', // TODO: Lấy từ database payment_credential (channel_code='DLC')
+  secretKey: '',
   billId: '0d6a5f25-a110-49f4-8d40-6cfaa06668bf',
   studentId: '1234567890',
 };
@@ -29,7 +29,7 @@ export const TEST_DATA = {
  */
 export const TEST_DATA_ALT = {
   channelCode: 'DLC',
-  secretKey: '', // TODO: Lấy từ database payment_credential (channel_code='DLC')
+  secretKey: '',
   billId: 'superadmin@hub.edu.vn',
   studentId: '1951012345',
 };

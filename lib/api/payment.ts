@@ -4,13 +4,6 @@ import { logger } from '@/lib/logger';
 
 const BASE_URL = 'https://tailieuso.hub.edu.vn';
 
-export interface GetBillRequest {
-  channelCode: string;
-  bills: { code: string };
-  studentId: string;
-  checkSum: string;
-}
-
 export interface GetBillResponse {
   Data: {
     StudentName: string;
@@ -23,14 +16,6 @@ export interface GetBillResponse {
     StudentId: string;
   };
   ResultCode: string;
-}
-
-export interface PayBillRequest {
-  channelCode: string;
-  bills: { code: string };
-  studentId: string;
-  amount: string;
-  checkSum: string;
 }
 
 export interface GetBillsResponse {
@@ -48,48 +33,13 @@ export interface GetBillsResponse {
   totalAmount: string;
 }
 
-/**
- * Tạo checkSum MD5 theo format: StudentId|timestamp|channelCode|secretKey
- * 
- * Theo tài liệu:
- * - Timestamp có định dạng yyyy-MM-dd HH:mm và chuyển đổi sang đơn vị millisecond
- * - Format: StudentId|timestamp|channelCode|secretKey
- * 
- * Implementation:
- * - Lấy timestamp hiện tại dạng millisecond từ epoch (getTime())
- * - Đây tương đương với việc format yyyy-MM-dd HH:mm rồi convert sang millisecond
- */
-export function generateCheckSum(
-  studentId: string,
-  channelCode: string,
-  secretKey: string
-): string {
-  const now = new Date();
-  // Timestamp dạng millisecond từ epoch
-  // Tương đương với: format yyyy-MM-dd HH:mm -> parse Date -> getTime()
-  const timestampMs = now.getTime().toString();
-  const checkSumString = `${studentId}|${timestampMs}|${channelCode}|${secretKey}`;
-  return crypto.createHash('md5').update(checkSumString).digest('hex');
-}
+const generateCheckSumBase = (studentId: string, channelCode: string, secretKey: string): string => {
+  const timestampMs = new Date().getTime().toString();
+  return crypto.createHash('md5').update(`${studentId}|${timestampMs}|${channelCode}|${secretKey}`).digest('hex');
+};
 
-/**
- * Tạo checkSum MD5 cho API getbills
- * Format: StudentId|timestamp|channelCode|secretKey (giống getBillInfo)
- * 
- * @param studentId - Mã sinh viên
- * @param channelCode - Channel code
- * @param secretKey - Secret key
- */
-export function generateGetBillsCheckSum(
-  studentId: string,
-  channelCode: string,
-  secretKey: string
-): string {
-  const now = new Date();
-  const timestampMs = now.getTime().toString();
-  const checkSumString = `${studentId}|${timestampMs}|${channelCode}|${secretKey}`;
-  return crypto.createHash('md5').update(checkSumString).digest('hex');
-}
+export const generateCheckSum = generateCheckSumBase;
+export const generateGetBillsCheckSum = generateCheckSumBase;
 
 export async function getBillInfo(
   billId: string,
@@ -113,7 +63,6 @@ export async function getBillInfo(
     checkSum,
   };
   
-  // Thêm các field bổ sung nếu có (trừ secretKey vì không nên gửi)
   if (additionalFields) {
     Object.entries(additionalFields).forEach(([key, value]) => {
       if (key !== 'secretKey' && value !== undefined && value !== '') {
@@ -133,21 +82,23 @@ export async function getBillInfo(
     return response.data;
   } catch (error) {
     logger.error('Request failed:', error);
+    if (axios.isAxiosError(error)) {
+      // Đảm bảo error message luôn có thông tin CORS khi là lỗi CORS
+      if (!error.response && (error.code === 'ERR_FAILED' || error.code === 'ERR_NETWORK')) {
+        const corsMessage = `CORS: ${url} - Access blocked by CORS policy`;
+        (error as Error).message = corsMessage;
+        // Đảm bảo message được set vào error object
+        if (error.message !== corsMessage) {
+          error.message = corsMessage;
+        }
+      }
+    }
     throw error;
   }
 }
 
 /**
  * API getbills - Lấy danh sách đơn hàng của sinh viên
- * Method: POST
- * Body: channelCode, studentId, checkSum
- * 
- * @param studentId - Mã sinh viên
- * @param channelCode - Channel code của đối tác bank/cổng thanh toán
- * @param secretKey - Mật khẩu hash (secretKey từ payment_credential)
- * @param domain - Domain URL (optional, defaults to BASE_URL)
- * @param endpoint - API endpoint (optional, defaults to '/ehub/payment/getbills')
- * @param additionalFields - Các field bổ sung để thêm vào payload (optional)
  */
 export async function getBills(
   studentId: string,
@@ -163,14 +114,8 @@ export async function getBills(
   const apiEndpoint = endpoint || '/ehub/payment/getbills';
   const url = `${baseUrl}${apiEndpoint}`;
   
-  // Build payload với các field cơ bản
-  const requestData: Record<string, unknown> = {
-    channelCode,
-    studentId,
-    checkSum,
-  };
+  const requestData: Record<string, unknown> = { channelCode, studentId, checkSum };
   
-  // Thêm các field bổ sung nếu có (trừ secretKey vì không nên gửi)
   if (additionalFields) {
     Object.entries(additionalFields).forEach(([key, value]) => {
       if (key !== 'secretKey' && value !== undefined && value !== '') {
@@ -190,28 +135,23 @@ export async function getBills(
     return response.data;
   } catch (error) {
     logger.error('Request failed:', error);
+    if (axios.isAxiosError(error)) {
+      // Đảm bảo error message luôn có thông tin CORS khi là lỗi CORS
+      if (!error.response && (error.code === 'ERR_FAILED' || error.code === 'ERR_NETWORK')) {
+        const corsMessage = `CORS: ${url} - Access blocked by CORS policy`;
+        (error as Error).message = corsMessage;
+        // Đảm bảo message được set vào error object
+        if (error.message !== corsMessage) {
+          error.message = corsMessage;
+        }
+      }
+    }
     throw error;
   }
 }
 
-/**
- * Tạo checkSum MD5 cho API Pay (gạch nợ)
- * Format: StudentId|amount|Timestamp|...
- * 
- * @param studentId - Mã sinh viên
- * @param amount - Tổng tiền đơn hàng
- * @param timestamp - Thời gian gọi API (millisecond)
- * @param secretKey - Secret key (mật khẩu hash)
- */
-function generatePayCheckSum(
-  studentId: string,
-  amount: string,
-  timestamp: string,
-  secretKey: string
-): string {
-  const checkSumString = `${studentId}|${amount}|${timestamp}|${secretKey}`;
-  return crypto.createHash('md5').update(checkSumString).digest('hex');
-}
+const generatePayCheckSum = (studentId: string, amount: string, timestamp: string, secretKey: string): string =>
+  crypto.createHash('md5').update(`${studentId}|${amount}|${timestamp}|${secretKey}`).digest('hex');
 
 export async function payBill(
   billId: string,
@@ -243,7 +183,6 @@ export async function payBill(
     checkSum,
   };
   
-  // Thêm các field bổ sung nếu có (trừ secretKey vì không nên gửi)
   if (additionalFields) {
     Object.entries(additionalFields).forEach(([key, value]) => {
       if (key !== 'secretKey' && value !== undefined && value !== '') {

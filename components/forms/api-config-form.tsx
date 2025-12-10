@@ -57,40 +57,22 @@ export function ApiConfigForm({
 
   const handleCallApi = () => {
     setError(null);
-
     try {
-      // Parse JSON payload
-      let payload: Record<string, unknown> = {};
-      try {
-        payload = JSON.parse(payloadJson);
-      } catch {
-        setError('Payload JSON không hợp lệ');
-        return;
-      }
-
+      const payload = JSON.parse(payloadJson) as Record<string, unknown>;
       if (!endpoint) {
         setError('Vui lòng nhập endpoint');
         return;
       }
-
-      // Merge default values nếu có
       if (defaultValues) {
-        payload = {
-          ...payload,
+        Object.assign(payload, {
           channelCode: payload.channelCode || defaultValues.channelCode,
           studentId: payload.studentId || defaultValues.studentId,
           billId: payload.billId || defaultValues.billId,
-        };
+        });
       }
-
-      onCallApi({
-        method,
-        endpoint,
-        baseUrl: baseUrl || undefined,
-        payload,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Có lỗi xảy ra');
+      onCallApi({ method, endpoint, baseUrl: baseUrl || undefined, payload });
+    } catch {
+      setError('Payload JSON không hợp lệ');
     }
   };
 

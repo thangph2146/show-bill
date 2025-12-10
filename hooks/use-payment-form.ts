@@ -6,10 +6,6 @@ import { paymentFormSchema, type PaymentFormData } from '@/lib/schemas/payment-s
 import { usePaymentFormData, usePaymentFormSetters } from '@/store/payment-store';
 import { getBillInfo, getBills, payBill } from '@/lib/api/payment';
 
-/**
- * Custom hook để quản lý Payment Form với React Hook Form
- * Sử dụng selectors để tối ưu re-render
- */
 export function usePaymentForm() {
   const { domain, endpoint, channelCode, secretKey, billId, studentId } = usePaymentFormData();
   const { setDomain, setEndpoint, setChannelCode, setSecretKey, setBillId, setStudentId } = usePaymentFormSetters();
@@ -27,11 +23,8 @@ export function usePaymentForm() {
     mode: 'onChange',
   });
 
-  // Ref để track xem có đang sync từ store không (tránh infinite loop)
   const isSyncingFromStore = useRef(false);
   const lastStoreValues = useRef({ domain, endpoint, channelCode, secretKey, billId, studentId });
-
-  // Sync form values với store khi form values thay đổi
   const domainValue = useWatch({ control: form.control, name: 'domain' });
   const endpointValue = useWatch({ control: form.control, name: 'endpoint' });
   const channelCodeValue = useWatch({ control: form.control, name: 'channelCode' });
@@ -39,55 +32,23 @@ export function usePaymentForm() {
   const billIdValue = useWatch({ control: form.control, name: 'billId' });
   const studentIdValue = useWatch({ control: form.control, name: 'studentId' });
 
-  // Sync form với store khi store thay đổi từ bên ngoài (ví dụ: loadQuickData)
-  // Chỉ reset khi store values thực sự thay đổi và khác với form values
   useEffect(() => {
-    const currentBillId = billId || '';
-    const currentEndpoint = endpoint || '';
-    const currentDomain = domain || '';
-    const storeChanged =
-      lastStoreValues.current.domain !== currentDomain ||
-      lastStoreValues.current.endpoint !== currentEndpoint ||
-      lastStoreValues.current.channelCode !== channelCode ||
-      lastStoreValues.current.secretKey !== secretKey ||
-      lastStoreValues.current.billId !== currentBillId ||
-      lastStoreValues.current.studentId !== studentId;
-
-    if (storeChanged) {
-      const currentValues = form.getValues();
-      const formBillId = currentValues.billId || '';
-      const formEndpoint = currentValues.endpoint || '';
-      const formDomain = currentValues.domain || '';
-      const shouldReset =
-        formDomain !== currentDomain ||
-        formEndpoint !== currentEndpoint ||
-        currentValues.channelCode !== channelCode ||
-        currentValues.secretKey !== secretKey ||
-        formBillId !== currentBillId ||
-        currentValues.studentId !== studentId;
-
+    const current = { domain: domain || '', endpoint: endpoint || '', channelCode, secretKey, billId: billId || '', studentId };
+    const changed = Object.keys(current).some(key => lastStoreValues.current[key as keyof typeof current] !== current[key as keyof typeof current]);
+    if (changed) {
+      const formValues = form.getValues();
+      const shouldReset = Object.keys(current).some(key => (formValues[key as keyof typeof formValues] || '') !== current[key as keyof typeof current]);
       if (shouldReset) {
         isSyncingFromStore.current = true;
-        form.reset({
-          domain: currentDomain,
-          endpoint: currentEndpoint,
-          channelCode,
-          secretKey,
-          billId: currentBillId,
-          studentId,
-        });
-        lastStoreValues.current = { domain: currentDomain, endpoint: currentEndpoint, channelCode, secretKey, billId: currentBillId, studentId };
-        // Reset flag sau khi form đã được reset
-        setTimeout(() => {
-          isSyncingFromStore.current = false;
-        }, 0);
+        form.reset(current);
+        lastStoreValues.current = current;
+        setTimeout(() => { isSyncingFromStore.current = false; }, 0);
       } else {
-        lastStoreValues.current = { domain: currentDomain, endpoint: currentEndpoint, channelCode, secretKey, billId: currentBillId, studentId };
+        lastStoreValues.current = current;
       }
     }
   }, [domain, endpoint, channelCode, secretKey, billId, studentId, form]);
 
-  // Update store khi form values thay đổi (chỉ khi không phải đang sync từ store)
   useEffect(() => {
     if (!isSyncingFromStore.current && channelCodeValue !== channelCode) {
       setChannelCode(channelCodeValue);
@@ -103,7 +64,7 @@ export function usePaymentForm() {
   }, [secretKeyValue, secretKey, setSecretKey]);
 
   useEffect(() => {
-    if (!isSyncingFromStore.current && billIdValue !== billId && billIdValue) {
+    if (!isSyncingFromStore.current && billIdValue && billIdValue !== billId) {
       setBillId(billIdValue);
       lastStoreValues.current.billId = billIdValue;
     }
@@ -117,20 +78,19 @@ export function usePaymentForm() {
   }, [studentIdValue, studentId, setStudentId]);
 
   useEffect(() => {
-    if (!isSyncingFromStore.current && domainValue !== domain) {
+    if (!isSyncingFromStore.current && (domainValue || '') !== domain) {
       setDomain(domainValue || '');
       lastStoreValues.current.domain = domainValue || '';
     }
   }, [domainValue, domain, setDomain]);
 
   useEffect(() => {
-    if (!isSyncingFromStore.current && endpointValue !== endpoint) {
+    if (!isSyncingFromStore.current && (endpointValue || '') !== endpoint) {
       setEndpoint(endpointValue || '');
       lastStoreValues.current.endpoint = endpointValue || '';
     }
   }, [endpointValue, endpoint, setEndpoint]);
 
-  // Reset form với values từ store
   const resetForm = (values?: Partial<PaymentFormData>) => {
     form.reset({
       domain: values?.domain ?? (domain || ''),
@@ -148,9 +108,6 @@ export function usePaymentForm() {
   };
 }
 
-/**
- * Hook để lấy thông tin đơn hàng (getBillInfo API)
- */
 export function useGetBill() {
   const { billId, studentId, channelCode, secretKey, domain, endpoint } = usePaymentFormData();
 
@@ -166,65 +123,24 @@ export function useGetBill() {
   });
 }
 
-/**
- * Hook để lấy danh sách đơn hàng (getbills API)
- */
 export function useGetBills() {
   const { studentId, channelCode, secretKey, domain, endpoint } = usePaymentFormData();
-
   return useQuery({
     queryKey: ['bills', studentId, channelCode, domain, endpoint],
     queryFn: () => {
-      if (!studentId || !channelCode || !secretKey) {
-        throw new Error('Thiếu thông tin cần thiết');
-      }
-      
-      // getBills API không cần billId trong payload
-      // Nếu có billId, nên gọi getBillInfo thay vì getBills
+      if (!studentId || !channelCode || !secretKey) throw new Error('Thiếu thông tin cần thiết');
       return getBills(studentId, channelCode, secretKey, domain, endpoint);
     },
     enabled: false,
   });
 }
 
-/**
- * Hook để thanh toán đơn hàng (payBill API)
- */
 export function usePayBill() {
   const { channelCode, secretKey, domain, endpoint, billId: defaultBillId } = usePaymentFormData();
-
   return useMutation({
-    mutationFn: ({
-      billId,
-      studentId,
-      amount,
-      studentName,
-      description,
-    }: {
-      billId: string;
-      studentId: string;
-      amount: string;
-      studentName?: string;
-      description?: string;
-    }) => {
-      const additionalFields: Record<string, unknown> = {};
-      if (defaultBillId && defaultBillId !== billId) {
-        additionalFields.billId = defaultBillId;
-      }
-      
-      return payBill(
-        billId,
-        studentId,
-        amount,
-        channelCode,
-        secretKey,
-        studentName,
-        description,
-        domain,
-        endpoint,
-        additionalFields
-      );
-    },
+    mutationFn: ({ billId, studentId, amount, studentName, description }: {
+      billId: string; studentId: string; amount: string; studentName?: string; description?: string;
+    }) => payBill(billId, studentId, amount, channelCode, secretKey, studentName, description, domain, endpoint, defaultBillId && defaultBillId !== billId ? { billId: defaultBillId } : undefined),
   });
 }
 

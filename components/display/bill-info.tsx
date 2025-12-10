@@ -27,6 +27,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { printBill } from '@/lib/utils/print-bill';
@@ -53,25 +54,10 @@ export function BillInfo({ billData, onPay, isPaying, isMock = false }: BillInfo
   const { showBillPreview } = usePaymentUIState();
   const { setShowBillPreview } = usePaymentUISetters();
 
-  const formatDate = (timestamp: string) => {
-    const date = new Date(parseInt(timestamp));
-    return date.toLocaleString('vi-VN');
-  };
-
-  const formatCurrency = (amount: string) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND',
-    }).format(parseInt(amount));
-  };
-
-  const handlePrint = () => {
-    printBill(billData);
-  };
-
-  const handleViewBill = () => {
-    setShowBillPreview(true);
-  };
+  const formatDate = (timestamp: string) => new Date(parseInt(timestamp)).toLocaleString('vi-VN');
+  const formatCurrency = (amount: string) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(parseInt(amount));
+  const handlePrint = () => printBill(billData);
+  const handleViewBill = () => setShowBillPreview(true);
 
   return (
     <Card className="border-2 shadow-lg animate-in fade-in slide-in-from-bottom-4">
@@ -246,6 +232,9 @@ export function BillInfo({ billData, onPay, isPaying, isMock = false }: BillInfo
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
             <DialogTitle>Xem hóa đơn</DialogTitle>
+            <DialogDescription>
+              Xem chi tiết thông tin hóa đơn và có thể in ra
+            </DialogDescription>
           </DialogHeader>
           <div className="pt-4">
             <BillPreview billData={billData} />

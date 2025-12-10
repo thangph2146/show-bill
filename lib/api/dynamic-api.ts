@@ -1,7 +1,3 @@
-/**
- * Dynamic API Caller - Gọi API động dựa trên config
- */
-
 import axios, { AxiosRequestConfig } from 'axios';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
@@ -25,148 +21,73 @@ export interface DynamicApiResponse<T = unknown> {
   headers: Record<string, string>;
 }
 
-/**
- * Generate checksum theo format và fields từ template
- * Format: "field1|field2|field3|secretKey"
- */
 function generateChecksum(
   format: string,
   fields: string[],
   payload: Record<string, unknown>,
   secretKey: string
 ): string {
-  // Tạo mảng các giá trị theo thứ tự trong format
   const parts: string[] = [];
-  const formatParts = format.split('|');
-
-  formatParts.forEach((part) => {
-    const trimmedPart = part.trim();
-    
-    // Kiểm tra nếu là field name
-    const fieldIndex = fields.findIndex((f) => 
-      trimmedPart.toLowerCase() === f.toLowerCase()
-    );
-    
+  format.split('|').forEach((part) => {
+    const trimmed = part.trim().toLowerCase();
+    const fieldIndex = fields.findIndex(f => trimmed === f.toLowerCase());
     if (fieldIndex !== -1) {
-      // Lấy giá trị từ payload
       const fieldName = fields[fieldIndex];
       let value = payload[fieldName]?.toString() || '';
-      
-      // Xử lý field đặc biệt: bills -> lấy code
       if (fieldName === 'bills' && typeof payload.bills === 'object' && payload.bills !== null) {
-        const billsObj = payload.bills as { code?: string };
-        value = billsObj.code || '';
+        value = (payload.bills as { code?: string }).code || '';
       }
-      
       parts.push(value);
-    } else if (trimmedPart.toLowerCase() === 'timestamp' || trimmedPart === 'Timestamp') {
-      // Timestamp tự động
-      const timestamp = new Date().getTime().toString();
-      parts.push(timestamp);
-    } else if (trimmedPart.toLowerCase() === 'secretkey') {
-      // Secret key
+    } else if (trimmed === 'timestamp') {
+      parts.push(new Date().getTime().toString());
+    } else if (trimmed === 'secretkey') {
       parts.push(secretKey);
     } else {
-      // Giữ nguyên nếu không match
-      parts.push(trimmedPart);
+      parts.push(part.trim());
     }
   });
-
-  // Join bằng dấu |
-  const checkSumString = parts.join('|');
-  
-  return crypto.createHash('md5').update(checkSumString).digest('hex');
+  return crypto.createHash('md5').update(parts.join('|')).digest('hex');
 }
 
-/**
- * Build payload từ template và form values
- */
 function buildPayload(
   template: ApiTemplate,
   formValues: Record<string, unknown>,
   secretKey?: string
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
-
-  // Điền các field từ form values
   template.fields.forEach((field) => {
-    if (formValues[field.name] !== undefined) {
-      payload[field.name] = formValues[field.name];
-    } else if (field.defaultValue !== undefined) {
-      payload[field.name] = field.defaultValue;
-    }
+    payload[field.name] = formValues[field.name] ?? field.defaultValue;
   });
-
-  // Xử lý các field đặc biệt
-  if (template.id === 'getBillInfo') {
-    // Nếu có billId trong formValues, tạo bills object
-    if (formValues.billId) {
-      payload.bills = { code: formValues.billId };
-    } else if (formValues.bills) {
-      // Nếu đã có bills object, giữ nguyên
-      payload.bills = formValues.bills;
-    }
+  if (template.id === 'getBillInfo' && formValues.billId) {
+    payload.bills = { code: formValues.billId };
   }
-
-  // Generate checksum nếu có
   if (template.checksumGenerator && secretKey) {
-    const checksum = generateChecksum(
-      template.checksumGenerator.format,
-      template.checksumGenerator.fields,
-      payload,
-      secretKey
-    );
-    payload.checkSum = checksum;
+    payload.checkSum = generateChecksum(template.checksumGenerator.format, template.checksumGenerator.fields, payload, secretKey);
   }
-
-  // Generate timestamp nếu cần
   if (template.id === 'payBill' && !payload.timestamp) {
     payload.timestamp = new Date().getTime().toString();
   }
-
   return payload;
 }
 
-/**
- * Gọi API động dựa trên template hoặc config tùy chỉnh
- */
 export async function callDynamicApi<T = unknown>(
   request: DynamicApiRequest
 ): Promise<DynamicApiResponse<T>> {
-  const baseUrl = request.baseUrl || DEFAULT_BASE_URL;
-  const url = `${baseUrl}${request.endpoint}`;
-
-  // Build payload
+  const url = `${request.baseUrl || DEFAULT_BASE_URL}${request.endpoint}`;
   let payload = request.payload;
-
-  // Nếu có templateId, build payload từ template
   if (request.templateId) {
     const { getApiTemplate } = await import('@/lib/config/api-templates');
     const template = getApiTemplate(request.templateId);
-    if (template) {
-      payload = buildPayload(template, request.payload, request.secretKey);
-    }
+    if (template) payload = buildPayload(template, request.payload, request.secretKey);
   }
-
-  // Build axios config
+  const isBodyMethod = ['POST', 'PUT', 'PATCH'].includes(request.method);
   const axiosConfig: AxiosRequestConfig = {
     method: request.method,
     url,
-    headers: {
-      'Content-Type': 'application/json',
-      ...request.headers,
-    },
+    headers: { 'Content-Type': 'application/json', ...request.headers },
+    ...(isBodyMethod ? { data: payload } : { params: payload }),
   };
-
-  // Thêm data cho POST, PUT, PATCH
-  if (['POST', 'PUT', 'PATCH'].includes(request.method)) {
-    axiosConfig.data = payload;
-    logger.request(request.method, url, payload);
-  } else {
-    // GET, DELETE: thêm params
-    axiosConfig.params = payload;
-    logger.request(request.method, url);
-  }
+  logger.request(request.method, url, isBodyMethod ? payload : undefined);
 
   try {
     const response = await axios(axiosConfig);
@@ -181,9 +102,6 @@ export async function callDynamicApi<T = unknown>(
   }
 }
 
-/**
- * Gọi API từ template
- */
 export async function callApiFromTemplate<T = unknown>(
   templateId: string,
   formValues: Record<string, unknown>,

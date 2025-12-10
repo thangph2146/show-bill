@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CardContent } from '@/components/ui/card';
@@ -133,13 +132,8 @@ export function PaymentForm({
     return defaultFields;
   });
 
-  const onSubmit = () => {
-    onGetBill();
-  };
-
-  const handleLoadQuickData = () => {
-    loadQuickData();
-  };
+  const onSubmit = () => onGetBill();
+  const handleLoadQuickData = () => loadQuickData();
 
   const toggleField = (fieldKey: FieldKey) => {
     setVisibleFields((prev) => {
@@ -162,39 +156,8 @@ export function PaymentForm({
 
   const renderField = (fieldConfig: FieldConfig) => {
     const { key, label, icon: Icon, placeholder, type = 'text', required } = fieldConfig;
-    const isVisible = visibleFields.has(key);
-    
-    if (!isVisible) return null;
-
-    const isReadOnly = key === 'billId' && showBillId;
+    if (!visibleFields.has(key)) return null;
     const fieldError = errors[key as keyof typeof errors];
-
-    // Endpoint không cần register vì đã sync với store qua useEffect
-    if (key === 'endpoint') {
-      return (
-        <Field key={key} data-invalid={!!fieldError}>
-          <FieldLabel htmlFor={key} className="flex items-center gap-2">
-            <Icon className="h-4 w-4" />
-            {label}
-            {required && <span className="text-destructive">*</span>}
-          </FieldLabel>
-          <FieldContent>
-            <Input
-              id={key}
-              {...register('endpoint', { required: false })}
-              type={type}
-              placeholder={placeholder}
-              className="h-11"
-              aria-invalid={!!fieldError}
-            />
-            <FieldError
-              errors={fieldError ? [{ message: fieldError.message }] : undefined}
-            />
-          </FieldContent>
-        </Field>
-      );
-    }
-
     return (
       <Field key={key} data-invalid={!!fieldError}>
         <FieldLabel htmlFor={key} className="flex items-center gap-2">
@@ -205,16 +168,14 @@ export function PaymentForm({
         <FieldContent>
           <Input
             id={key}
-            {...register(key)}
+            {...register(key === 'endpoint' ? 'endpoint' : key, { required: false })}
             type={type}
             placeholder={placeholder}
             className="h-11"
             aria-invalid={!!fieldError}
-            readOnly={isReadOnly}
+            readOnly={key === 'billId' && showBillId}
           />
-          <FieldError
-            errors={fieldError ? [{ message: fieldError.message }] : undefined}
-          />
+          <FieldError errors={fieldError ? [{ message: fieldError.message }] : undefined} />
         </FieldContent>
       </Field>
     );
@@ -284,34 +245,13 @@ export function PaymentForm({
             </FieldContent>
           </Field>
 
-          {/* Domain và Endpoint - Hiển thị đầu tiên */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FIELD_CONFIGS.map((fieldConfig) => {
-              if (fieldConfig.key === 'domain' || fieldConfig.key === 'endpoint') {
-                return renderField(fieldConfig);
-              }
-              return null;
-            })}
+            {FIELD_CONFIGS.filter(f => f.key === 'domain' || f.key === 'endpoint').map(renderField)}
           </div>
-
-          {/* Grid Layout cho Form Fields */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FIELD_CONFIGS.map((fieldConfig) => {
-              // Render channelCode và secretKey trong grid
-              if (fieldConfig.key === 'channelCode' || fieldConfig.key === 'secretKey') {
-                return renderField(fieldConfig);
-              }
-              return null;
-            })}
+            {FIELD_CONFIGS.filter(f => f.key === 'channelCode' || f.key === 'secretKey').map(renderField)}
           </div>
-
-          {/* Student ID và Bill ID full width */}
-          {FIELD_CONFIGS.map((fieldConfig) => {
-            if (fieldConfig.key === 'studentId' || fieldConfig.key === 'billId') {
-              return renderField(fieldConfig);
-            }
-            return null;
-          })}
+          {FIELD_CONFIGS.filter(f => f.key === 'studentId' || f.key === 'billId').map(renderField)}
         </FieldGroup>
 
         {/* Action Buttons */}

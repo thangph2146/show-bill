@@ -17,9 +17,7 @@ export function MockBillInfo() {
     setSelectedBillId(billId);
   };
 
-  const handleMockPay = () => {
-    console.log('Mock payment - không thực hiện thanh toán thật');
-  };
+  const handleMockPay = () => {};
 
   const selectedBillData = selectedBillId ? MOCK_BILLS_MAP[selectedBillId] : null;
 

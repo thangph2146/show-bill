@@ -30,23 +30,46 @@ export default function PaymentPage() {
   const { mutate: payBill, isPending: isPaying } = usePayBill();
 
   const handleError = (err: unknown) => {
-    const error = err as {
-      code?: string;
-      message?: string;
-      response?: { data?: { message?: string } };
+    const error = err as { 
+      code?: string; 
+      message?: string; 
+      response?: { data?: { message?: string; ResultCode?: string } };
     };
+    const msg = error.message || '';
+    const str = String(err);
+    const errorJson = err && typeof err === 'object' ? JSON.stringify(err) : '';
     
-    // CORS error
-    if (error.message?.includes('CORS') || error.message?.includes('Access-Control')) {
-      return 'Lỗi CORS: Server không cho phép truy cập từ domain này. Vui lòng kiểm tra cấu hình CORS trên server.';
+    // Phát hiện lỗi CORS - ưu tiên kiểm tra message trước
+    const hasCorsInMessage = [msg, str, errorJson].some(s => 
+      s.includes('CORS') || s.includes('Access-Control') || s.includes('blocked by CORS policy')
+    );
+    const isCorsError = hasCorsInMessage || 
+      error.code === 'ERR_FAILED' || 
+      (error.code === 'ERR_NETWORK' && !error.response);
+    
+    if (isCorsError) {
+      return 'Lỗi CORS: Server không cho phép truy cập từ domain này. Vui lòng kiểm tra cấu hình CORS trên server hoặc sử dụng proxy.';
     }
     
-    // Network error
-    if (error.code === 'ERR_NETWORK' || error.message?.includes('Network')) {
+    if (error.code === 'ERR_NETWORK' || [msg, str].some(s => s.includes('Network Error') || s.includes('Failed to fetch'))) {
       return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet hoặc domain API có thể không khả dụng.';
     }
     
-    return error.response?.data?.message || error.message || 'Có lỗi xảy ra';
+    if (error.response?.data?.ResultCode) {
+      return `Lỗi: ${ERROR_CODES[error.response.data.ResultCode] || 'Lỗi không xác định'} (Code: ${error.response.data.ResultCode})`;
+    }
+    
+    return error.response?.data?.message || msg || 'Có lỗi xảy ra. Vui lòng thử lại.';
+  };
+
+  const handleBillResponse = (data?: { ResultCode?: string }) => {
+    if (!data) return;
+    if (data.ResultCode === '00') {
+      setSuccess('Lấy thông tin đơn hàng thành công');
+    } else {
+      const errorMsg = ERROR_CODES[data.ResultCode || ''] || 'Lỗi không xác định';
+      setError(`Lỗi: ${errorMsg} (Code: ${data.ResultCode})`);
+    }
   };
 
   const handleGetBills = async () => {
@@ -54,21 +77,12 @@ export default function PaymentPage() {
       setError('Vui lòng điền đầy đủ thông tin (Student ID, Channel Code, Secret Key)');
       return;
     }
-
     clearMessages();
-
     try {
-      // Nếu có billId, gọi API getBillInfo để lấy thông tin đơn hàng cụ thể
       if (billId) {
         const { data } = await fetchBill();
-        if (data?.ResultCode === '00') {
-          setSuccess('Lấy thông tin đơn hàng thành công');
-        } else {
-          const errorMsg = ERROR_CODES[data?.ResultCode || ''] || 'Lỗi không xác định';
-          setError(`Lỗi: ${errorMsg} (Code: ${data?.ResultCode})`);
-        }
+        handleBillResponse(data);
       } else {
-        // Nếu không có billId, gọi API getBills để lấy danh sách đơn hàng
         const { data } = await fetchBills();
         if (data?.bills && data.bills.length > 0) {
           setSuccess(`Lấy danh sách đơn hàng thành công (${data.bills.length} đơn hàng)`);
@@ -85,17 +99,12 @@ export default function PaymentPage() {
     setSelectedBillId(billId);
     setBillId(billId);
     clearMessages();
-
     try {
       const { data } = await fetchBill();
-      if (data?.ResultCode === '00') {
-        setSuccess('Lấy thông tin đơn hàng thành công');
-      } else {
-        const errorMsg = ERROR_CODES[data?.ResultCode || ''] || 'Lỗi không xác định';
-        setError(`Lỗi: ${errorMsg} (Code: ${data?.ResultCode})`);
-      }
+      handleBillResponse(data);
     } catch (err) {
-      setError(handleError(err));
+      const errorMsg = handleError(err);
+      setError(errorMsg);
     }
   };
 
@@ -143,44 +152,13 @@ export default function PaymentPage() {
     clearMessages();
     setIsCallingDynamicApi(true);
     setDynamicApiResponse(null);
-
     try {
-      // Merge form values vào payload
-      const payload = {
-        ...config.payload,
-        channelCode: config.payload.channelCode || channelCode,
-        studentId: config.payload.studentId || studentId,
-        billId: config.payload.billId || billId,
-      };
-
-      let response;
-      if (config.templateId) {
-        // Gọi từ template
-        response = await callApiFromTemplate(
-          config.templateId,
-          payload,
-          secretKey,
-          config.baseUrl
-        );
-      } else {
-        // Gọi custom API
-        response = await callDynamicApi({
-          method: config.method,
-          endpoint: config.endpoint,
-          baseUrl: config.baseUrl,
-          payload,
-          secretKey,
-        });
-      }
-
+      const payload = { ...config.payload, channelCode: config.payload.channelCode || channelCode, studentId: config.payload.studentId || studentId, billId: config.payload.billId || billId };
+      const response = config.templateId
+        ? await callApiFromTemplate(config.templateId, payload, secretKey, config.baseUrl)
+        : await callDynamicApi({ method: config.method, endpoint: config.endpoint, baseUrl: config.baseUrl, payload, secretKey });
       setDynamicApiResponse(response.data);
       setSuccess(`API call thành công! Status: ${response.status}`);
-
-      // Nếu là getbills, tự động cập nhật billsData
-      if (config.templateId === 'getbills' && response.data) {
-        // Có thể cần transform response data
-        // billsData sẽ được cập nhật tự động nếu response format đúng
-      }
     } catch (err) {
       setError(handleError(err));
     } finally {
@@ -215,40 +193,19 @@ export default function PaymentPage() {
                   <p className="text-sm text-blue-800 dark:text-blue-200">
                     <strong>Hướng dẫn:</strong>{' '}
                     {(() => {
-                      const fieldLabels: Record<string, string> = {
-                        domain: 'Domain',
-                        endpoint: 'Endpoint',
-                        channelCode: 'Channel Code',
-                        secretKey: 'Secret Key',
-                        studentId: 'Student ID',
-                        billId: 'Bill ID',
+                      const labels: Record<string, string> = {
+                        domain: 'Domain', endpoint: 'Endpoint', channelCode: 'Channel Code',
+                        secretKey: 'Secret Key', studentId: 'Student ID', billId: 'Bill ID',
                       };
-                      const requiredFields = ['channelCode', 'secretKey', 'studentId'];
-                      const visibleRequiredFields = Array.from(visibleFields)
-                        .filter((field) => requiredFields.includes(field))
-                        .map((field) => fieldLabels[field] || field);
-                      const visibleOptionalFields = Array.from(visibleFields)
-                        .filter((field) => !requiredFields.includes(field))
-                        .map((field) => fieldLabels[field] || field);
-                      
-                      let instruction = '';
-                      if (visibleRequiredFields.length > 0) {
-                        instruction = `Điền ${visibleRequiredFields.join(', ')}`;
-                        if (visibleOptionalFields.length > 0) {
-                          instruction += ` (và ${visibleOptionalFields.join(', ')} nếu cần)`;
-                        }
-                      } else {
-                        instruction = 'Chọn các field cần thiết từ menu "Chọn các field hiển thị"';
-                      }
-                      
-                      // Thêm hướng dẫn dựa trên có billId hay không
-                      const hasBillId = visibleFields.has('billId');
-                      if (hasBillId) {
-                        instruction += '. Nếu có Bill ID, sẽ lấy thông tin đơn hàng cụ thể; nếu không, sẽ lấy danh sách đơn hàng.';
-                      } else {
-                        instruction += ', sau đó nhấn "Lấy danh sách đơn hàng" để xem các đơn hàng của bạn.';
-                      }
-                      return instruction;
+                      const required = ['channelCode', 'secretKey', 'studentId'];
+                      const visibleReq = Array.from(visibleFields).filter(f => required.includes(f)).map(f => labels[f] || f);
+                      const visibleOpt = Array.from(visibleFields).filter(f => !required.includes(f)).map(f => labels[f] || f);
+                      const base = visibleReq.length > 0
+                        ? `Điền ${visibleReq.join(', ')}${visibleOpt.length > 0 ? ` (và ${visibleOpt.join(', ')} nếu cần)` : ''}`
+                        : 'Chọn các field cần thiết từ menu "Chọn các field hiển thị"';
+                      return base + (visibleFields.has('billId')
+                        ? '. Nếu có Bill ID, sẽ lấy thông tin đơn hàng cụ thể; nếu không, sẽ lấy danh sách đơn hàng.'
+                        : ', sau đó nhấn "Lấy danh sách đơn hàng" để xem các đơn hàng của bạn.');
                     })()}
                   </p>
                 </div>
