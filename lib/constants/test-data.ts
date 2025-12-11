@@ -8,20 +8,35 @@
  */
 
 /**
- * Test Data mặc định - Ví dụ từ tài liệu
- * Body request mẫu:
+ * Test Data mặc định - Dữ liệu từ Postman test thành công
+ * Body request mẫu (từ Postman):
  * {
  *   "channelCode": "DLC",
- *   "bills": {"code":"0d6a5f25-a110-49f4-8d40-6cfaa06668bf"},
- *   "studentId":"1234567890",
- *   "checkSum": "b54652ddff7c3ba2402975d70da7a60a"
+ *   "studentId": "030740240067",
+ *   "checkSum": "7807085b565a024fc3b58476ce4e712d",
+ *   "timestamp": "1765420693000"
+ * }
+ * 
+ * Response thành công (200 OK):
+ * {
+ *   "Data": {
+ *     "StudentName": "Phạm Nguyễn Ngọc Huyền",
+ *     "Bills": {
+ *       "Description": "Payment from tailieuso with amount: 100000",
+ *       "Id": "f14ad4a5-11d5-498e-83cf-3e5587fb164d",
+ *       "DebtAmount": "100000",
+ *       "CreateDate": "1765346759815"
+ *     },
+ *     "StudentId": "030740240067"
+ *   },
+ *   "ResultCode": "00"
  * }
  */
 export const TEST_DATA = {
   channelCode: 'DLC',
-  secretKey: '',
-  billId: '0d6a5f25-a110-49f4-8d40-6cfaa06668bf',
-  studentId: '1234567890',
+  secretKey: 'DLC@!2345', // Secret key từ database (payment_credential) - đã test thành công
+  billId: 'f14ad4a5-11d5-498e-83cf-3e5587fb164d', // BillId từ response
+  studentId: '030740240067',
 };
 
 /**
@@ -35,24 +50,47 @@ export const TEST_DATA_ALT = {
 };
 
 /**
- * Test Data với response mẫu từ tài liệu
- * Response mẫu:
+ * Test Data với response mẫu từ Postman test thành công
+ * Response mẫu từ Postman (200 OK):
  * {
  *   "Data": {
- *     "StudentName": "tuanv vu",
+ *     "StudentName": "Phạm Nguyễn Ngọc Huyền",
  *     "Bills": {
- *       "Description": "Payment from tailieuso with amount: 1000000",
- *       "Id": "0d6a5f25-a110-49f4-8d40-6cfaa06668bf",
- *       "DebtAmount": "1000000",
- *       "CreateDate": "1727423756329"
+ *       "Description": "Payment from tailieuso with amount: 100000",
+ *       "Id": "f14ad4a5-11d5-498e-83cf-3e5587fb164d",
+ *       "DebtAmount": "100000",
+ *       "CreateDate": "1765346759815"
  *     },
- *     "StudentId": "1234567890"
+ *     "StudentId": "030740240067"
  *   },
  *   "ResultCode": "00"
  * }
  */
 export const TEST_DATA_WITH_RESPONSE = {
   ...TEST_DATA,
+  expectedResponse: {
+    Data: {
+      StudentName: 'Phạm Nguyễn Ngọc Huyền',
+      Bills: {
+        Description: 'Payment from tailieuso with amount: 100000',
+        Id: 'f14ad4a5-11d5-498e-83cf-3e5587fb164d',
+        DebtAmount: '100000',
+        CreateDate: '1765346759815',
+      },
+      StudentId: '030740240067',
+    },
+    ResultCode: '00',
+  },
+};
+
+/**
+ * Test Data từ tài liệu gốc (giữ lại để tham khảo)
+ */
+export const TEST_DATA_DOC = {
+  channelCode: 'DLC',
+  secretKey: '',
+  billId: '0d6a5f25-a110-49f4-8d40-6cfaa06668bf',
+  studentId: '1234567890',
   expectedResponse: {
     Data: {
       StudentName: 'tuanv vu',

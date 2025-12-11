@@ -56,7 +56,7 @@ export default function PaymentPage() {
     }
     
     if (error.response?.data?.ResultCode) {
-      return `Lỗi: ${ERROR_CODES[error.response.data.ResultCode] || 'Lỗi không xác định'} (Code: ${error.response.data.ResultCode})`;
+      return `${ERROR_CODES[error.response.data.ResultCode] || 'Lỗi không xác định'} (Mã lỗi: ${error.response.data.ResultCode})`;
     }
     
     return error.response?.data?.message || msg || 'Có lỗi xảy ra. Vui lòng thử lại.';
@@ -68,13 +68,13 @@ export default function PaymentPage() {
       setSuccess('Lấy thông tin đơn hàng thành công');
     } else {
       const errorMsg = ERROR_CODES[data.ResultCode || ''] || 'Lỗi không xác định';
-      setError(`Lỗi: ${errorMsg} (Code: ${data.ResultCode})`);
+      setError(`${errorMsg} (Mã lỗi: ${data.ResultCode})`);
     }
   };
 
   const handleGetBills = async () => {
     if (!studentId || !channelCode || !secretKey) {
-      setError('Vui lòng điền đầy đủ thông tin (Student ID, Channel Code, Secret Key)');
+      setError('Vui lòng điền đầy đủ thông tin (Mã số sinh viên, Channel Code, Secret Key)');
       return;
     }
     clearMessages();
@@ -127,7 +127,8 @@ export default function PaymentPage() {
       },
       {
         onSuccess: (result) => {
-          setSuccess(result.status === 200 ? 'Thanh toán thành công!' : `Thanh toán thất bại: ${result.data}`);
+          // Theo README: Khi tất cả thông tin trung khớp, DSpace trả về "Payment success" với mã 200
+          setSuccess(result.status === 200 ? 'Thanh toán thành công! (Payment success)' : `Thanh toán thất bại: ${result.data}`);
         },
         onError: (err) => {
           setError(handleError(err));
@@ -194,8 +195,8 @@ export default function PaymentPage() {
                     <strong>Hướng dẫn:</strong>{' '}
                     {(() => {
                       const labels: Record<string, string> = {
-                        domain: 'Domain', endpoint: 'Endpoint', channelCode: 'Channel Code',
-                        secretKey: 'Secret Key', studentId: 'Student ID', billId: 'Bill ID',
+                        domain: 'Base URL', endpoint: 'Endpoint', channelCode: 'Channel Code',
+                        secretKey: 'Secret Key', studentId: 'Mã số sinh viên', billId: 'Bill ID',
                       };
                       const required = ['channelCode', 'secretKey', 'studentId'];
                       const visibleReq = Array.from(visibleFields).filter(f => required.includes(f)).map(f => labels[f] || f);

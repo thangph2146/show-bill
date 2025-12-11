@@ -18,34 +18,6 @@ bun dev
 
 Mở [http://localhost:3000](http://localhost:3000) trên trình duyệt để xem kết quả.
 
-## Kết Nối DSpace Và Cổng Thanh Toán Trực Tuyến HUB
-
-### 1. Luồng Nghiệp Vụ (Đã Thống Nhất Với HUB)
-
-#### Bước 1: Tìm Kiếm và Thêm Vào Giỏ Hàng
-Bạn đọc truy cập vào DSpace thực hiện tìm kiếm tài liệu, thêm tài liệu vào giỏ hàng.
-
-#### Bước 2: Chọn Hình Thức Thanh Toán
-Bạn đọc thực hiện thanh toán, chọn hình thức thanh toán bằng EPAY.
-
-#### Bước 3: Truyền Thông Tin
-DSpace truyền thông tin `Bill_ID`, `Student_ID` cho EPAY thông qua URL do EPAY cung cấp.
-
-#### Bước 4: Đăng Nhập và Kiểm Tra Đơn Hàng
-Bạn đọc tiến hành login vào EPAY.
-- **Nếu login thất bại** => Kết thúc.
-- **Nếu login thành công** => EPAY sử dụng API lấy thông tin đơn hàng để kiểm tra số tiền cần thanh toán.
-
-#### Bước 5: Thực Hiện Thanh Toán
-Thực hiện thanh toán theo luồng nghiệp vụ của EPAY.
-- **Nếu thanh toán thất bại** => Kết thúc.
-- **Nếu thanh toán thành công** => EPAY sử dụng API thanh toán đơn hàng để thông báo kết quả thanh toán cho DSpace.
-
-#### Bước 6: Xử Lý Kết Quả
-DSpace kiểm tra thông tin, tiến hành gạch nợ và trả kết quả xử lý cho EPAY.
-- **Nếu kết quả trả mã 200** → Gạch nợ thành công, EPAY thông báo cho bạn đọc và kết thúc thao tác.
-- **Nếu kết quả trả mã khác 200** → Gạch nợ thất bại, EPAY thông báo cho bạn đọc lý do, hoàn lại tiền cho bạn đọc và kết thúc thao tác. (Lưu ý: Bạn đọc có thể được phép thực hiện lại thao tác thanh toán tùy theo chính sách và chức năng của EPAY).
-
 ### 2. Thông Tin API Kết Nối
 
 #### 2.1. API Lấy Thông Tin Đơn Hàng

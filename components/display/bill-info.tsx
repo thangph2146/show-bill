@@ -93,7 +93,7 @@ export function BillInfo({ billData, onPay, isPaying, isMock = false }: BillInfo
             <Field className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border">
               <FieldLabel className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
                 <Hash className="h-3 w-3" />
-                Mã sinh viên
+                Mã số thẻ
               </FieldLabel>
               <FieldContent>
                 <p className="text-base font-semibold text-foreground">

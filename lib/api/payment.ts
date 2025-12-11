@@ -50,17 +50,20 @@ export async function getBillInfo(
   endpoint?: string,
   additionalFields?: Record<string, unknown>
 ): Promise<GetBillResponse> {
+  const timestamp = new Date().getTime().toString();
   const checkSum = generateCheckSum(studentId, channelCode, secretKey);
   
   const baseUrl = domain || BASE_URL;
   const apiEndpoint = endpoint || '/ehub/payment/pay';
   const url = `${baseUrl}${apiEndpoint}`;
   
+  // Theo README: API /ehub/payment/pay chỉ cần channelCode, studentId, checkSum, timestamp
+  // KHÔNG có bills trong body request
   const requestData: Record<string, unknown> = {
     channelCode,
-    bills: { code: billId },
     studentId,
     checkSum,
+    timestamp,
   };
   
   if (additionalFields) {
@@ -150,8 +153,9 @@ export async function getBills(
   }
 }
 
-const generatePayCheckSum = (studentId: string, amount: string, timestamp: string, secretKey: string): string =>
-  crypto.createHash('md5').update(`${studentId}|${amount}|${timestamp}|${secretKey}`).digest('hex');
+// Theo README: CheckSum format cho API callback: StudentId|timestamp|chanelCode|secretKey
+const generatePayCheckSum = (studentId: string, timestamp: string, channelCode: string, secretKey: string): string =>
+  crypto.createHash('md5').update(`${studentId}|${timestamp}|${channelCode}|${secretKey}`).digest('hex');
 
 export async function payBill(
   billId: string,
@@ -166,21 +170,20 @@ export async function payBill(
   additionalFields?: Record<string, unknown>
 ): Promise<{ status: number; data: string }> {
   const timestamp = new Date().getTime().toString();
-  const checkSum = generatePayCheckSum(studentId, amount, timestamp, secretKey);
+  const checkSum = generatePayCheckSum(studentId, timestamp, channelCode, secretKey);
   
   const baseUrl = domain || BASE_URL;
   const apiEndpoint = endpoint || '/ehub/payment/callback';
   const url = `${baseUrl}${apiEndpoint}`;
   
+  // Theo README: API /ehub/payment/callback cần: channelCode, bills (với code), studentId, amount, checkSum, timestamp
   const requestData: Record<string, unknown> = {
-    billid: billId,
-    amount,
-    description: description || '',
+    channelCode,
+    bills: { code: billId },
     studentId,
-    studentName: studentName || '',
-    timestamp,
-    Channelid: channelCode,
+    amount,
     checkSum,
+    timestamp,
   };
   
   if (additionalFields) {
@@ -209,12 +212,13 @@ export async function payBill(
   }
 }
 
+// Theo README.md - Mã lỗi từ API
 export const ERROR_CODES: Record<string, string> = {
-  '00': 'success',
-  '01': 'student_not_found',
-  '02': 'bad_request',
-  '03': 'system_error',
-  '04': 'failed',
-  '05': 'not_found_debt',
+  '00': 'Thành công',
+  '01': 'Không tìm thấy sinh viên',
+  '02': 'Yêu cầu không hợp lệ',
+  '03': 'Lỗi hệ thống',
+  '04': 'Thất bại',
+  '05': 'Không tìm thấy nợ',
 };
 

@@ -137,7 +137,7 @@ export function generatePrintContent(billData: BillData): string {
           <div class="label">Thông tin khách hàng</div>
           <div style="margin-top: 8px;">
             <div class="value" style="font-size: 16px;">${billData.StudentName}</div>
-            <div style="font-size: 13px; color: #666; margin-top: 4px;">Mã sinh viên: ${billData.StudentId}</div>
+            <div style="font-size: 13px; color: #666; margin-top: 4px;">Mã số thẻ: ${billData.StudentId}</div>
           </div>
         </div>
 

@@ -26,8 +26,8 @@ export const paymentFormSchema = z.object({
     .optional(),
   studentId: z
     .string()
-    .min(1, 'Student ID là bắt buộc')
-    .max(50, 'Student ID không được vượt quá 50 ký tự')
+    .min(1, 'Mã số sinh viên là bắt buộc')
+    .max(50, 'Mã số sinh viên không được vượt quá 50 ký tự')
 });
 
 export type PaymentFormData = z.infer<typeof paymentFormSchema>;

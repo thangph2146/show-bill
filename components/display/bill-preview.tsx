@@ -64,7 +64,7 @@ export function BillPreview({ billData }: BillPreviewProps) {
             <p className="text-xs text-gray-500 uppercase mb-2">Thông tin khách hàng</p>
             <div className="space-y-1">
               <p className="text-base font-semibold">{billData.StudentName}</p>
-              <p className="text-sm text-gray-600">Mã sinh viên: {billData.StudentId}</p>
+              <p className="text-sm text-gray-600">Mã số thẻ: {billData.StudentId}</p>
             </div>
           </div>
         </div>

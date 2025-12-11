@@ -55,18 +55,32 @@ function buildPayload(
   secretKey?: string
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
+  
+  // Thêm timestamp trước khi generate checksum (cần cho cả getBillInfo và payBill)
+  if (template.id === 'getBillInfo' || template.id === 'payBill') {
+    payload.timestamp = new Date().getTime().toString();
+  }
+  
+  // Build payload từ template fields
   template.fields.forEach((field) => {
-    payload[field.name] = formValues[field.name] ?? field.defaultValue;
+    // Bỏ qua timestamp và checkSum vì sẽ được xử lý riêng
+    if (field.name !== 'timestamp' && field.name !== 'checkSum') {
+      payload[field.name] = formValues[field.name] ?? field.defaultValue;
+    }
   });
-  if (template.id === 'getBillInfo' && formValues.billId) {
+  
+  // Xử lý đặc biệt cho payBill: chuyển billId thành bills.code
+  if (template.id === 'payBill' && formValues.billId) {
     payload.bills = { code: formValues.billId };
   }
+  
+  // Lưu ý: getBillInfo KHÔNG có bills trong body theo README
+  
+  // Generate checksum sau khi đã có đầy đủ thông tin (bao gồm timestamp)
   if (template.checksumGenerator && secretKey) {
     payload.checkSum = generateChecksum(template.checksumGenerator.format, template.checksumGenerator.fields, payload, secretKey);
   }
-  if (template.id === 'payBill' && !payload.timestamp) {
-    payload.timestamp = new Date().getTime().toString();
-  }
+  
   return payload;
 }
 

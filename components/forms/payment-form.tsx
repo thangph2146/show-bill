@@ -16,6 +16,7 @@ import {
   FieldLabel,
   FieldContent,
   FieldError,
+  FieldDescription,
 } from '@/components/ui/field';
 import {
   Search,
@@ -62,7 +63,7 @@ interface FieldConfig {
 const FIELD_CONFIGS: FieldConfig[] = [
   {
     key: 'domain',
-    label: 'Domain',
+    label: 'Base URL',
     icon: Globe,
     placeholder: 'https://tailieuso.hub.edu.vn',
     defaultVisible: false,
@@ -71,7 +72,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
     key: 'endpoint',
     label: 'Endpoint',
     icon: Link2,
-    placeholder: '/ehub/payment/getbills',
+    placeholder: '/ehub/payment/pay',
     defaultVisible: false,
   },
   {
@@ -86,14 +87,14 @@ const FIELD_CONFIGS: FieldConfig[] = [
     key: 'secretKey',
     label: 'Secret Key',
     icon: Key,
-    placeholder: 'Nhập secret key',
+    placeholder: 'DLC@!2345 (từ database payment_credential)',
     type: 'password',
     required: true,
     defaultVisible: true,
   },
   {
     key: 'studentId',
-    label: 'Student ID',
+    label: 'Mã số sinh viên',
     icon: User,
     placeholder: '1234567890',
     required: true,
@@ -122,7 +123,12 @@ export function PaymentForm({
   const loadQuickData = usePaymentStore((state) => state.loadQuickData);
 
   // State cho các field được chọn
+  // Sử dụng lazy initialization để tránh hydration mismatch
   const [visibleFields, setVisibleFields] = useState<Set<FieldKey>>(() => {
+    // Chỉ initialize trên client side
+    if (typeof window === 'undefined') {
+      return new Set<FieldKey>();
+    }
     const defaultFields = new Set<FieldKey>();
     FIELD_CONFIGS.forEach((field) => {
       if (field.defaultVisible || (field.key === 'billId' && showBillId)) {
@@ -158,6 +164,21 @@ export function PaymentForm({
     const { key, label, icon: Icon, placeholder, type = 'text', required } = fieldConfig;
     if (!visibleFields.has(key)) return null;
     const fieldError = errors[key as keyof typeof errors];
+    
+    // Description cho các field
+    const getDescription = () => {
+      if (key === 'secretKey') {
+        return 'Secret key từ bảng payment_credential trong database. Giá trị mặc định: DLC@!2345';
+      }
+      if (key === 'channelCode') {
+        return 'Channel code từ bảng payment_credential. Giá trị mặc định: DLC';
+      }
+      if (key === 'studentId') {
+        return 'Mã số sinh viên cần tra cứu hóa đơn';
+      }
+      return undefined;
+    };
+    
     return (
       <Field key={key} data-invalid={!!fieldError}>
         <FieldLabel htmlFor={key} className="flex items-center gap-2">
@@ -174,7 +195,11 @@ export function PaymentForm({
             className="h-11"
             aria-invalid={!!fieldError}
             readOnly={key === 'billId' && showBillId}
+            autoComplete={key === 'secretKey' ? 'current-password' : key === 'studentId' ? 'username' : 'off'}
           />
+          {getDescription() && (
+            <FieldDescription>{getDescription()}</FieldDescription>
+          )}
           <FieldError errors={fieldError ? [{ message: fieldError.message }] : undefined} />
         </FieldContent>
       </Field>

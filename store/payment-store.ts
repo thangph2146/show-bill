@@ -40,7 +40,7 @@ interface PaymentState {
 
 const initialState = {
   domain: 'https://tailieuso.hub.edu.vn',
-  endpoint: '/ehub/payment/getbills',
+  endpoint: '/ehub/payment/pay', // Endpoint mặc định từ Postman test
   channelCode: TEST_DATA.channelCode,
   secretKey: TEST_DATA.secretKey,
   billId: TEST_DATA.billId,
@@ -73,9 +73,9 @@ export const usePaymentStore = create<PaymentState>((set) => ({
   loadTestData: () => set({ ...TEST_DATA, error: null, success: null }),
   loadQuickData: () => set({
     channelCode: 'DLC',
-    secretKey: 'DLC@!2345',
-    billId: '28623f65-426a-41e8-ad29-cdfee1ddb9f5',
-    studentId: '28623f65-426a-41e8-ad29-cdfee1ddb9f5',
+    secretKey: 'DLC@!2345', // Secret key từ database - đã test thành công
+    billId: 'f14ad4a5-11d5-498e-83cf-3e5587fb164d', // BillId từ response Postman
+    studentId: '030740240067', // StudentId từ Postman test
     error: null,
     success: null,
   }),
