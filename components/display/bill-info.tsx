@@ -20,8 +20,8 @@ import {
   Eye,
   Printer,
 } from 'lucide-react';
+import { useState } from 'react';
 import { BillPreview } from './bill-preview';
-import { usePaymentUIState, usePaymentUISetters } from '@/store/payment-store';
 import {
   Dialog,
   DialogContent,
@@ -51,8 +51,7 @@ interface BillInfoProps {
 }
 
 export function BillInfo({ billData, onPay, isPaying, isMock = false }: BillInfoProps) {
-  const { showBillPreview } = usePaymentUIState();
-  const { setShowBillPreview } = usePaymentUISetters();
+  const [showBillPreview, setShowBillPreview] = useState(false);
 
   const formatDate = (timestamp: string) => new Date(parseInt(timestamp)).toLocaleString('vi-VN');
   const formatCurrency = (amount: string) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(parseInt(amount));

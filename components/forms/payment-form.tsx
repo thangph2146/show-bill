@@ -26,13 +26,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Building2,
-  Receipt,
   Zap,
   Settings2,
   Check,
   ChevronDown,
-  Link2,
-  Globe,
 } from 'lucide-react';
 import { usePaymentForm } from '@/hooks/use-payment-form';
 import { usePaymentStore } from '@/store/payment-store';
@@ -44,11 +41,10 @@ interface PaymentFormProps {
   isPaying: boolean;
   error: string | null;
   success: string | null;
-  showBillId?: boolean;
   onVisibleFieldsChange?: (fields: Set<FieldKey>) => void;
 }
 
-type FieldKey = 'domain' | 'endpoint' | 'channelCode' | 'secretKey' | 'studentId' | 'billId';
+type FieldKey = 'channelCode' | 'secretKey' | 'studentId';
 
 interface FieldConfig {
   key: FieldKey;
@@ -61,20 +57,6 @@ interface FieldConfig {
 }
 
 const FIELD_CONFIGS: FieldConfig[] = [
-  {
-    key: 'domain',
-    label: 'Base URL',
-    icon: Globe,
-    placeholder: 'https://tailieuso.hub.edu.vn',
-    defaultVisible: false,
-  },
-  {
-    key: 'endpoint',
-    label: 'Endpoint',
-    icon: Link2,
-    placeholder: '/ehub/payment/pay',
-    defaultVisible: false,
-  },
   {
     key: 'channelCode',
     label: 'Channel Code',
@@ -96,16 +78,9 @@ const FIELD_CONFIGS: FieldConfig[] = [
     key: 'studentId',
     label: 'Mã số sinh viên',
     icon: User,
-    placeholder: '1234567890',
+    placeholder: '030740240067',
     required: true,
     defaultVisible: true,
-  },
-  {
-    key: 'billId',
-    label: 'Bill ID',
-    icon: Receipt,
-    placeholder: '0d6a5f25-a110-49f4-8d40-6cfaa06668bf',
-    defaultVisible: false,
   },
 ];
 
@@ -115,23 +90,17 @@ export function PaymentForm({
   isPaying,
   error,
   success,
-  showBillId = false,
   onVisibleFieldsChange,
 }: PaymentFormProps) {
   const { form } = usePaymentForm();
   const { register, handleSubmit, formState: { errors } } = form;
   const loadQuickData = usePaymentStore((state) => state.loadQuickData);
 
-  // State cho các field được chọn
-  // Sử dụng lazy initialization để tránh hydration mismatch
+  // State cho các field được chọn - khởi tạo với giá trị mặc định
   const [visibleFields, setVisibleFields] = useState<Set<FieldKey>>(() => {
-    // Chỉ initialize trên client side
-    if (typeof window === 'undefined') {
-      return new Set<FieldKey>();
-    }
     const defaultFields = new Set<FieldKey>();
     FIELD_CONFIGS.forEach((field) => {
-      if (field.defaultVisible || (field.key === 'billId' && showBillId)) {
+      if (field.defaultVisible) {
         defaultFields.add(field.key);
       }
     });
@@ -189,12 +158,11 @@ export function PaymentForm({
         <FieldContent>
           <Input
             id={key}
-            {...register(key === 'endpoint' ? 'endpoint' : key, { required: false })}
+            {...register(key, { required: false })}
             type={type}
             placeholder={placeholder}
             className="h-11"
             aria-invalid={!!fieldError}
-            readOnly={key === 'billId' && showBillId}
             autoComplete={key === 'secretKey' ? 'current-password' : key === 'studentId' ? 'username' : 'off'}
           />
           {getDescription() && (
@@ -224,7 +192,7 @@ export function PaymentForm({
                     variant="outline"
                     className="w-full justify-between"
                   >
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2" suppressHydrationWarning>
                       <Settings2 className="h-4 w-4" />
                       Đã chọn {visibleFields.size} field
                     </span>
@@ -271,12 +239,8 @@ export function PaymentForm({
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FIELD_CONFIGS.filter(f => f.key === 'domain' || f.key === 'endpoint').map(renderField)}
+            {FIELD_CONFIGS.map(renderField)}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {FIELD_CONFIGS.filter(f => f.key === 'channelCode' || f.key === 'secretKey').map(renderField)}
-          </div>
-          {FIELD_CONFIGS.filter(f => f.key === 'studentId' || f.key === 'billId').map(renderField)}
         </FieldGroup>
 
         {/* Action Buttons */}
@@ -295,7 +259,7 @@ export function PaymentForm({
             ) : (
               <>
                 <Search className="mr-2 h-4 w-4" />
-                {form.watch('billId') ? 'Lấy thông tin đơn hàng' : 'Lấy danh sách đơn hàng'}
+                Lấy danh sách đơn hàng
               </>
             )}
           </Button>
