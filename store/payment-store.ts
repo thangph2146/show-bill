@@ -24,7 +24,6 @@ interface PaymentState {
   
   // Actions - Utility
   loadQuickData: () => void;
-  reset: () => void;
 }
 
 const initialState = {
@@ -56,7 +55,6 @@ export const usePaymentStore = create<PaymentState>((set) => ({
     error: null,
     success: null,
   }),
-  reset: () => set(initialState),
 }));
 
 // Selectors để tối ưu re-render - chỉ subscribe các giá trị cần thiết
