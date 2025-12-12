@@ -104,15 +104,41 @@ export default function PaymentPage() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 py-6 sm:py-8 px-4 sm:px-6">
-      <div className="container mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent dark:from-primary/20 dark:via-primary/10 border-b border-primary/10">
+        <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="max-w-3xl mx-auto text-center space-y-4">
+            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+              Hệ thống thanh toán trực tuyến
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Tra cứu và thanh toán hóa đơn nhanh chóng, an toàn
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
         {/* Payment Form */}
-        <Card className="border-2 shadow-lg">
+        <Card className="border-2 shadow-xl hover:shadow-2xl transition-shadow duration-300 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
           <div className="px-6 pt-6 pb-4">
-            <div className="mb-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Hướng dẫn:</strong> Điền Channel Code, Secret Key, Mã số sinh viên, sau đó nhấn &quot;Lấy thông tin đơn hàng&quot; để xem thông tin đơn hàng.
-              </p>
+            <div className="rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/50 dark:border-blue-800/50 p-5 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="rounded-full bg-blue-500/10 p-2 mt-0.5">
+                  <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    Hướng dẫn sử dụng
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200 leading-relaxed">
+                    Điền Channel Code, Secret Key, Mã số sinh viên, sau đó nhấn &quot;Lấy thông tin đơn hàng&quot; để xem thông tin đơn hàng.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
           <PaymentForm
